@@ -1,3 +1,4 @@
+// eslint-disable-next-line
 /* global chrome location ReadableStream define MessageChannel TransformStream */
 
 ;((name, definition) => {
@@ -7,8 +8,6 @@
       ? define(definition)
       : this[name] = definition()
 })('streamSaver', () => {
-  'use strict'
-
   let mitmTransporter = null
   let supportsTransferable = false
   const test = fn => { try { fn() } catch (e) {} }
@@ -25,7 +24,8 @@
     WritableStream: window.WritableStream || ponyfill.WritableStream,
     supported: true,
     version: { full: '2.0.0', major: 2, minor: 0, dot: 0 },
-    mitm: 'https://jimmywarting.github.io/StreamSaver.js/mitm.html?version=2.0.0'
+    //mitm: 'https://jimmywarting.github.io/StreamSaver.js/mitm.html?version=2.0.0'
+    mitm: '/mitm.html'
   }
 
   /**
@@ -130,7 +130,8 @@
       size: null,
       pathname: null,
       writableStrategy: undefined,
-      readableStrategy: undefined
+      readableStrategy: undefined,
+      downloadCallback: undefined,
     }
 
     let bytesWritten = 0 // by StreamSaver.js (not the service worker)
@@ -184,13 +185,21 @@
             controller.enqueue(chunk)
 
             if (downloadUrl) {
-              location.href = downloadUrl
+              if (opts.downloadCallback) {
+                opts.downloadCallback(downloadUrl);
+              } else {
+                window.location.href = downloadUrl
+              }
               downloadUrl = null
             }
           },
           flush () {
             if (downloadUrl) {
-              location.href = downloadUrl
+              if (opts.downloadCallback) {
+                opts.downloadCallback(downloadUrl);
+              } else {
+                window.location.href = downloadUrl
+              }
             }
           }
         }
@@ -212,7 +221,11 @@
             mitmTransporter.remove()
             mitmTransporter = null
             if (bytesWritten) {
-              location.href = evt.data.download
+              if (opts.downloadCallback) {
+                opts.downloadCallback(evt.data.download);
+              } else {
+                window.location.href = evt.data.download
+              }
             } else {
               downloadUrl = evt.data.download
             }
@@ -226,7 +239,11 @@
             }
 
             // We never remove this iframes b/c it can interrupt saving
-            makeIframe(evt.data.download)
+            if (opts.downloadCallback) {
+              opts.downloadCallback(evt.data.download);
+            } else {
+              makeIframe(evt.data.download)
+            }
           }
         }
       }
@@ -268,7 +285,11 @@
         bytesWritten += chunk.length
 
         if (downloadUrl) {
-          location.href = downloadUrl
+          if (opts.downloadCallback) {
+            opts.downloadCallback(downloadUrl);
+          } else {
+            window.location.href = downloadUrl
+          }
           downloadUrl = null
         }
       },
